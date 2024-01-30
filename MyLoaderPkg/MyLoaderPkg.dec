@@ -1,0 +1,5 @@
+[Defines]
+  DEC_SPECIFICATION              = 0x00010005
+  PACKAGE_NAME                   = MyLoaderPkg
+  PACKAGE_GUID                   = d2fcc025-2f3c-4c1f-b901-60cc986346e8
+  PACKAGE_VERSION                = 0.1
