@@ -1,7 +1,7 @@
 struct stat;
 struct rtcdate;
 
-// system calls
+// system calls 시스템 호출이다. 
 int fork(void);
 int exit(void) __attribute__((noreturn));
 int wait(void);
@@ -23,6 +23,10 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int uthread_init(int address); 
+void thread_join_all(void);
+//유저레벨에서 함수를 선언한다. 
+
 
 // ulib.c
 int stat(char*, struct stat*);

@@ -7,6 +7,8 @@
 #include "proc.h"
 #include "spinlock.h"
 #include "debug.h"
+// 커널이 부르는건데, 여기에있는 함수 외에도 시스템호출이 C로 따로 구현되어있는 경우도 있다. 
+
 
 struct {
   struct spinlock lock;
@@ -35,10 +37,9 @@ cpuid() {
 
 // Must be called with interrupts disabled to avoid the caller being
 // rescheduled between reading lapicid and running through the loop.
-struct cpu*
-mycpu(void)
+struct cpu* mycpu(void)
 {
-  int apicid, i;
+  /*int apicid, i;
   
   if(readeflags()&FL_IF){
     panic("mycpu called with interrupts enabled\n");
@@ -51,14 +52,28 @@ mycpu(void)
     if (cpus[i].apicid == apicid){
       return &cpus[i];
     }
+  }*/
+
+  if (!lapic) {
+    // lapic이 NULL일 때는 CPU 0을 반환
+    return &cpus[0];
   }
+  
+  int apicid = lapicid();
+  int i;
+  
+  for(i = 0; i < ncpu; ++i) {
+    if(cpus[i].apicid == apicid)
+      return &cpus[i];
+  }
+  
   panic("unknown apicid\n");
 }
 
 // Disable interrupts so that we are not rescheduled
 // while reading proc from the cpu structure
 struct proc*
-myproc(void) {
+myproc(void) { 
   struct cpu *c;
   struct proc *p;
   pushcli();
@@ -89,11 +104,12 @@ allocproc(void)
   release(&ptable.lock);
   return 0;
 
+
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-
   release(&ptable.lock);
+
 
 
   // Allocate kernel stack.
@@ -183,7 +199,7 @@ growproc(int n)
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.
-int
+int //fork()
 fork(void)
 {
   int i, pid;
@@ -275,6 +291,7 @@ exit(void)
 
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
+// 커널이 부르는 함수이다. 유저가 부르는 함수는 있는데.. 없음.? 
 int
 wait(void)
 {
@@ -292,6 +309,7 @@ wait(void)
       havekids = 1;
       if(p->state == ZOMBIE){
         // Found one.
+        // 이밑에 뭐 접근하고 하는건 유저레벨에서 접근할 수가 없다. 
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
@@ -325,6 +343,9 @@ wait(void)
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
+
+
+// -----------------------------스케줄러---------------------------
 void
 scheduler(void)
 {
@@ -339,7 +360,7 @@ scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
+      if(p->state != RUNNABLE) //러너블이면 넘어가고 
         continue;
 
       // Switch to chosen process.  It is the process's job
@@ -347,9 +368,9 @@ scheduler(void)
       // before jumping back to us.
       c->proc = p;
       switchuvm(p);
-      p->state = RUNNING;
+      p->state = RUNNING; //러너블이면 ? 
 
-      swtch(&(c->scheduler), p->context);
+      swtch(&(c->scheduler), p->context); //---------------------------여기 스위칭이 있다. 컨텍스트 두개를 가지고 스위칭해라. 이때 스케쥴러가 사용된다.
       switchkvm();
 
       // Process is done running for now.
@@ -383,7 +404,7 @@ sched(void)
   if(readeflags()&FL_IF)
     panic("sched interruptible");
   intena = mycpu()->intena;
-  swtch(&p->context, mycpu()->scheduler);
+  swtch(&p->context, mycpu()->scheduler); //내 컨텍스트에서 스케쥴러로 바꾼다. 이게 일어나고 스케쥴러가 일어나면 된다.
   mycpu()->intena = intena;
 }
 

@@ -7,9 +7,9 @@
 #include "x86.h"
 #include "syscall.h"
 
-// User code makes a system call with INT T_SYSCALL.
-// System call number in %eax.
-// Arguments on the stack, from the user call to the C
+// User code makes a system call with INT T_SYSCALL. 유저코드가 시스템콜을 했다.
+// System call number in %eax.                        시스템콜 넘버는 eax에 있다.
+// Arguments on the stack, from the user call to the C 변수, 아규먼트는 스택에 있다.
 // library system call function. The saved user %esp points
 // to a saved program counter, and then the first argument.
 
@@ -17,9 +17,9 @@
 int
 fetchint(uint addr, int *ip)
 {
-  struct proc *curproc = myproc();
+  struct proc *curproc = myproc(); //현재 프로세스 스택에 접근해서 
 
-  if(addr >= curproc->sz || addr+4 > curproc->sz)
+  if(addr >= curproc->sz || addr+4 > curproc->sz) //스택에 아규먼트가 있는걸 가져온다고 한다.
     return -1;
   *ip = *(int*)(addr);
   return 0;
@@ -54,7 +54,7 @@ argint(int n, int *ip)
 
 // Fetch the nth word-sized system call argument as a pointer
 // to a block of memory of size bytes.  Check that the pointer
-// lies within the process address space.
+// lies within the process address space.     -----------------이걸 사용해야함!!!
 int
 argptr(int n, char **pp, int size)
 {
@@ -103,12 +103,15 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_uthread_init(void); // 유저쓰레드 하나 추가 
 
-static int (*syscalls[])(void) = {
-[SYS_fork]    sys_fork,
-[SYS_exit]    sys_exit,
-[SYS_wait]    sys_wait,
-[SYS_pipe]    sys_pipe,
+
+//이게 실제 테이블이다. 
+static int (*syscalls[])(void) = { //함수 포인터에 배열을 선언한것, syscall.h에 들어있는 순서다.
+[SYS_fork]    sys_fork, //1번
+[SYS_exit]    sys_exit, //2번
+[SYS_wait]    sys_wait, //[]안에 해당하는 함수가 뒤에 함수이다. 뒤에있는게 함수 포인터라고한다.
+[SYS_pipe]    sys_pipe, 
 [SYS_read]    sys_read,
 [SYS_kill]    sys_kill,
 [SYS_exec]    sys_exec,
@@ -126,17 +129,18 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_uthread_init]   sys_uthread_init,//여기에 내가 추가할 함수를 넣어야한다. 
 };
 
-void
+void 
 syscall(void)
 {
   int num;
   struct proc *curproc = myproc();
-
-  num = curproc->tf->eax;
-  if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    curproc->tf->eax = syscalls[num]();
+  
+  num = curproc->tf->eax; //ax에 번호를 넣고 부른다.
+  if(num > 0 && num < NELEM(syscalls) && syscalls[num]) { // ax를 보고 테이블에 접근해서 시스템콜을 찾아 그래서 해당하는 함수를 부른다.
+    curproc->tf->eax = syscalls[num](); //트릭인데.. 스택에 값을 바꿔서 거기로 컨텍스트 스위칭 시키는것. PCB에 tf에다가 ax값을 저장해두는것.
   } else {
     cprintf("%d %s: unknown sys call %d\n",
             curproc->pid, curproc->name, num);

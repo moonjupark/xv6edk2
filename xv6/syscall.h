@@ -1,4 +1,6 @@
 // System call numbers
+// 매크로로 구성되어있어서 컨벤션을 따라줘야한다.
+// 기존에 있던 것들이 번호가 바뀌면 안되고 밑쪽으로 추가해나가면 된다.
 #define SYS_fork    1
 #define SYS_exit    2
 #define SYS_wait    3
@@ -20,3 +22,4 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
+#define SYS_uthread_init 22 // 시스템 콜을 하나 추가했습니다.

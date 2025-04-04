@@ -1,6 +1,7 @@
 #include "types.h"
 #include "stat.h"
 #include "user.h"
+//types.h랑 user.h꼭 들어가야함. stdio.h를 못쓰기 때문
 
 char buf[512];
 
