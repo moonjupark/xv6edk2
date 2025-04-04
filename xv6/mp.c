@@ -34,7 +34,7 @@ mpsearch1(uint a, int len)
 
   addr = P2V(a);
   e = addr+len;
-  while(1){asm("hlt");}
+  // while(1){asm("hlt");}
   for(p = addr; p < e; p += sizeof(struct mp))
     if(memcmp(p, "_MP_", 4) == 0 && sum(p, sizeof(struct mp)) == 0)
       return (struct mp*)p;
@@ -108,11 +108,16 @@ mpinit(void)
     case MPPROC:
       proc = (struct mpproc*)p;
       if(ncpu < NCPU) {
-        cpus[ncpu].apicid = proc->apicid;  // apicid may differ from ncpu
+        cpus[ncpu].apicid = proc->apicid;  // Local APIC ID 저장
         ncpu++;
       }
       p += sizeof(struct mpproc);
       continue;
+
+      int i;
+      for(i = 0; i < ncpu; i++) {
+        cprintf("CPU %d: APIC ID in table: %d\n", i, cpus[i].apicid);
+      }
     case MPIOAPIC:
       ioapic = (struct mpioapic*)p;
       ioapicid = ioapic->apicno;

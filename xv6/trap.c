@@ -48,7 +48,7 @@ trap(struct trapframe *tf)
   }
 
   switch(tf->trapno){
-  case T_IRQ0 + IRQ_TIMER:
+    case T_IRQ0 + IRQ_TIMER: //타이머 인터럽트 
     if(cpuid() == 0){
       acquire(&tickslock);
       ticks++;
@@ -56,7 +56,16 @@ trap(struct trapframe *tf)
       release(&tickslock);
     }
     lapiceoi();
+    struct proc *p = myproc();
+    if(p && p->scheduler) {
+      // 트랩 프레임의 EIP를 스케줄러 주소로 변경
+      tf->esp -= 4; 
+      *(uint*)(tf->esp) = tf->eip; // 복귀 주소를 스케줄러 주소로 설정
+      tf->eip = p->scheduler;      // EIP를 스케줄러 함수 주소로 설정
+    }
+
     break;
+
   case T_IRQ0 + IRQ_IDE:
     ideintr();
     lapiceoi();
@@ -106,7 +115,8 @@ trap(struct trapframe *tf)
 
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  if(myproc() && myproc()->state == RUNNING &&
+  // 타이머 인터럽트가 주기적으로 발생할텐데 타이머 인터럽트가 발생하면, yield가 발생한다는 것이다. 
+  if(myproc() && myproc()->state == RUNNING && 
      tf->trapno == T_IRQ0+IRQ_TIMER)
     yield();
 
